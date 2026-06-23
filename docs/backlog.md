@@ -4,8 +4,8 @@
 
 | # | Problem | Hint | Status |
 |---|---------|------|--------|
-| LC 130 | [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) | DFS from borders inward | Todo |
-| LC 417 | [Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/) | DFS from two borders | Todo |
+| LC 130 | [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) | DFS from borders inward | Done |
+| LC 417 | [Pacific Atlantic Water Flow](https://leetcode.com/problems/pacific-atlantic-water-flow/) | DFS from two borders | Done |
 
 ---
 

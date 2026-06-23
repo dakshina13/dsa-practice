@@ -237,3 +237,11 @@ You can reach an already-visited node in two situations:
 ### LC 695 - Max Area of Island
 **Pattern:** Disconnected Graphs / DFS
 **Key Takeaway:** Same structure as LC 200. Make `dfs` return `int` and accumulate area with `return 1 + dfs(...) + dfs(...) + ...`
+
+### LC 130 - Surrounded Regions
+**Pattern:** Disconnected Graphs / Border-first DFS
+**Key Takeaway:** Reverse the search — don't find islands to flip, find what's safe first. DFS from every border `'O'`, mark connected cells `'A'`. Final sweep: `'O'` → `'X'` (captured), `'A'` → `'O'` (restore safe). Next time you see "ignore regions touching the boundary", think border-first DFS + temp marker.
+
+### LC 417 - Pacific Atlantic Water Flow
+**Pattern:** Disconnected Graphs / Border-first DFS (two oceans)
+**Key Takeaway:** Reverse water flow direction — DFS uphill from each ocean's border (`neighbor height >= current height`). Run once from Pacific borders (top row + left col), once from Atlantic borders (bottom row + right col). Answer is the intersection of both visited sets. Use `boolean[][]` or `int[][]` for visited — never `HashSet<int[]>` in Java (array reference equality breaks it).
