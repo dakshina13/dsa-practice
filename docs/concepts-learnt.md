@@ -216,6 +216,66 @@ You can reach an already-visited node in two situations:
 
 ---
 
+## Graph BFS
+
+**Key Takeaway:** BFS explores level by level using a queue. Preferred over DFS when you need shortest path or minimum steps.
+
+### Core Template (Java)
+```java
+Deque<int[]> queue = new ArrayDeque<>();
+queue.offer(new int[]{startRow, startCol});
+grid[startRow][startCol] = VISITED; // mark at enqueue, not dequeue
+
+while (!queue.isEmpty()) {
+    int[] curr = queue.poll();
+    int row = curr[0], col = curr[1];
+
+    // check 4 neighbors
+    for each valid neighbor where grid[neighbor] == target:
+        grid[neighbor] = VISITED; // mark before enqueuing
+        queue.offer(neighbor);
+}
+```
+
+### Mark at Enqueue, Not Dequeue
+Always mark a cell as visited **when you enqueue it**, not when you dequeue it. If you mark at dequeue time, the same cell can be enqueued multiple times by different neighbors before it's ever processed.
+
+### Level Order Traversal (counting steps/time)
+To count BFS levels (e.g., minutes elapsed), snapshot the queue size before each level:
+
+```java
+int time = 0;
+while (!queue.isEmpty()) {
+    int size = queue.size(); // all nodes at the current level
+    for (int i = 0; i < size; i++) {
+        int[] curr = queue.poll();
+        // process and enqueue neighbors
+    }
+    time++;
+}
+```
+After the loop, `time` is over-counted by 1 — use `time - 1`, or `Math.max(0, time - 1)` to handle the case where the queue started empty.
+
+### Multi-Source BFS
+When rot/infection/spread starts from **multiple sources simultaneously**, seed all sources into the queue at time 0 before the loop begins. They all belong to level 0 and spread in unison.
+
+```java
+// enqueue ALL sources first
+for (each source cell):
+    queue.offer(source);
+
+// then BFS normally — all sources are treated as level 0
+```
+
+### The `oc == color` Edge Case (Flood Fill style)
+If you're filling with the same color that's already there, your "already visited" check (`cell != originalColor`) never fires — every cell looks unvisited forever. Always guard:
+
+```java
+if (image[sr][sc] == color) return image;
+```
+
+---
+
 ## Problems Solved
 
 ### LC 684 - Redundant Connection
@@ -245,3 +305,11 @@ You can reach an already-visited node in two situations:
 ### LC 417 - Pacific Atlantic Water Flow
 **Pattern:** Disconnected Graphs / Border-first DFS (two oceans)
 **Key Takeaway:** Reverse water flow direction — DFS uphill from each ocean's border (`neighbor height >= current height`). Run once from Pacific borders (top row + left col), once from Atlantic borders (bottom row + right col). Answer is the intersection of both visited sets. Use `boolean[][]` or `int[][]` for visited — never `HashSet<int[]>` in Java (array reference equality breaks it).
+
+### LC 994 - Rotting Oranges
+**Pattern:** Multi-Source BFS / Level Order Traversal
+**Key Takeaway:** Seed all initially rotten cells into the queue at time 0. Use level-order BFS (snapshot `queue.size()` before each level) to count elapsed minutes. Mark cells rotten **at enqueue time** to prevent duplicate enqueues. Return `Math.max(0, time - 1)` — not `time - 1` — to handle the edge case where no fresh oranges exist and the queue starts empty (would return `-1` otherwise).
+
+### LC 733 - Flood Fill
+**Pattern:** BFS / Single-Source Spread
+**Key Takeaway:** Standard BFS from the starting cell, spreading only to neighbors matching the original color. Two critical guards: (1) mark cells with the new color **at enqueue time** to prevent re-enqueuing; (2) early return `if (originalColor == newColor)` — without it, the "already visited" check never fires and you get an infinite loop.
