@@ -276,6 +276,88 @@ if (image[sr][sc] == color) return image;
 
 ---
 
+## Word Ladder / BFS on Word Graph
+
+**Key Takeaway:** Treat each word as a node; two words are connected if they differ by exactly one letter. Shortest path → BFS. Never DFS for shortest path — DFS finds *a* path, not the *shortest* one.
+
+### Candidate Generation — O(26 × L) not O(N × L)
+Instead of comparing current word against every word in the list, generate all one-letter variants and check each against a `HashSet`:
+
+```java
+for (int i = 0; i < arr.length; i++) {
+    char original = arr[i];
+    for (char c = 'a'; c <= 'z'; c++) {
+        if (c == original) continue;
+        arr[i] = c;
+        String candidate = new String(arr);
+        if (wordSet.contains(candidate)) { /* process */ }
+    }
+    arr[i] = original; // restore
+}
+```
+
+### Visited Tracking
+Remove a word from the HashSet once it's added to the queue — this prevents revisiting and avoids cycles without a separate visited set.
+
+### Level Tracking and Count Initialization
+Use `queue.size()` snapshot for level-order BFS. Initialize `count = 1` (not 0) because `beginWord` is itself step 1 in the sequence. Return `count + 1` when `endWord` is found (current level hasn't been counted yet).
+
+```java
+int count = 1;
+while (!queue.isEmpty()) {
+    int size = queue.size();
+    for (int j = 0; j < size; j++) {
+        // process word
+        if (neighbor.equals(endWord)) return count + 1;
+    }
+    count++;
+}
+return 0;
+```
+
+### Word Ladder II — All Shortest Paths
+
+**Two-phase approach:**
+1. **BFS phase** — build a `Map<String, List<String>> backtrace` mapping each word to all its shortest-path parents
+2. **DFS phase** — backtrack from `endWord` to `beginWord` using the parent map, reversing each completed path
+
+**Level-safe removal:** Within a BFS level, multiple words can reach the same neighbor. Use a `Set<String> levelVisited` to ensure each neighbor is enqueued only once per level (preventing duplicate backtrace entries), while still recording all parents. Remove `levelVisited` from the main word set only *after* the full level is processed.
+
+```java
+Set<String> levelVisited = new HashSet<>();
+if (wl.contains(candidate)) {
+    if (!levelVisited.contains(candidate)) {
+        levelVisited.add(candidate);
+        queue.offer(candidate);       // enqueue once
+    }
+    backtrace.computeIfAbsent(candidate, k -> new ArrayList<>()).add(parentStr); // all parents
+}
+// after inner loops:
+wl.removeAll(levelVisited);
+```
+
+**DFS backtracking with path mutation:** Add `word` to path, recurse on its parents, then remove it. Crucially, the base case (`word.equals(beginWord)`) must also remove the word before returning — otherwise sibling branches inherit a corrupted path.
+
+```java
+void buildList(String word, String beginWord, List<String> path,
+               List<List<String>> result, Map<String, List<String>> backtrace) {
+    path.add(word);
+    if (word.equals(beginWord)) {
+        List<String> copy = new ArrayList<>(path);
+        Collections.reverse(copy);
+        result.add(copy);
+        path.remove(path.size() - 1); // must remove in base case too
+        return;
+    }
+    for (String parent : backtrace.getOrDefault(word, new ArrayList<>())) {
+        buildList(parent, beginWord, path, result, backtrace);
+    }
+    path.remove(path.size() - 1); // use index, not value
+}
+```
+
+---
+
 ## Problems Solved
 
 ### LC 684 - Redundant Connection
@@ -313,3 +395,41 @@ if (image[sr][sc] == color) return image;
 ### LC 733 - Flood Fill
 **Pattern:** BFS / Single-Source Spread
 **Key Takeaway:** Standard BFS from the starting cell, spreading only to neighbors matching the original color. Two critical guards: (1) mark cells with the new color **at enqueue time** to prevent re-enqueuing; (2) early return `if (originalColor == newColor)` — without it, the "already visited" check never fires and you get an infinite loop.
+
+### LC 785 - Is Graph Bipartite?
+**Pattern:** Graph 2-Coloring / BFS
+**Key Takeaway:** A graph is bipartite if and only if it can be 2-colored (no two adjacent nodes share a color). BFS from each unvisited node, assigning the opposite color to every neighbor. If a neighbor is already colored with the same color as the current node → not bipartite.
+
+**Critical gotchas:**
+- **Disconnected graphs:** Must loop over all nodes and start a fresh BFS from each unvisited one — a single BFS from node 0 misses separate components.
+- **`&&` vs `||` in unvisited check:** `colorMap[i] != 'W' || colorMap[i] != 'B'` is **always true** (a char can't be both at once). The correct "not yet colored" check is `colorMap[i] != 'W' && colorMap[i] != 'B'`.
+- **Array index vs neighbor node:** When iterating `for (int j = 0; j < adj.length; j++)`, use `adj[j]` (the actual neighbor node), not `j` (the index into adj).
+
+```java
+public boolean isBipartite(int[][] graph) {
+    char[] colorMap = new char[graph.length];
+    Deque<Integer> queue = new ArrayDeque<>();
+
+    for (int i = 0; i < graph.length; i++) {
+        if (colorMap[i] != 'W' && colorMap[i] != 'B') {  // unvisited
+            colorMap[i] = 'W';
+            queue.offer(i);
+        }
+        while (!queue.isEmpty()) {
+            int n = queue.poll();
+            char opp = colorMap[n] == 'W' ? 'B' : 'W';
+            for (int a : graph[n]) {
+                if (colorMap[a] != 'W' && colorMap[a] != 'B') {
+                    colorMap[a] = opp;
+                    queue.offer(a);
+                } else if (colorMap[a] == colorMap[n]) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+```
+
+**Complexity:** Time O(V + E), Space O(V) for the color array and queue.
